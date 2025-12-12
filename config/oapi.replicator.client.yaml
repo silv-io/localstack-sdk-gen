@@ -1,0 +1,9 @@
+package: genrepl
+generate:
+  client: true
+output: internal/generated/replicator/client.gen.go
+output-options:
+  response-type-suffix: Resp
+  include-tags:
+    - replicator
+

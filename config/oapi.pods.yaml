@@ -1,0 +1,9 @@
+package: genpods
+generate:
+  models: true
+output: internal/generated/pods/types.gen.go
+output-options:
+  response-type-suffix: Resp
+  include-tags:
+    - pods
+

@@ -1,0 +1,9 @@
+package: genchaos
+generate:
+  models: true
+output: internal/generated/chaos/types.gen.go
+output-options:
+  response-type-suffix: Resp
+  include-tags:
+    - chaos
+

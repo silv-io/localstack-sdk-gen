@@ -4,10 +4,12 @@ This doc explains how to build an ergonomic Go SDK on top of the generated clien
 
 ## Principles
 - Never edit generated files. Compose/wrap them.
+- Keep generation knobs in `config/*.yaml`; regenerate via `go generate ./...`.
 - Prefer small, domain-focused helpers over giant facades.
-- Keep request wiring (base URL, auth, headers, timeouts) centralized.
+- Centralize request wiring (base URL, auth, headers, timeouts, UA).
 - Return Go-native types and clear errors; hide OpenAPI plumbing where possible.
 - Accept `context.Context` on outward-facing methods.
+- Prefer `WithResponse` variants for better status/body inspection; unwrap in porcelain.
 
 ## Where to Put Porcelain
 - Use the existing `client` package as the entrypoint.
@@ -15,6 +17,7 @@ This doc explains how to build an ergonomic Go SDK on top of the generated clien
 - Keep shared config/types in `client` (e.g., Config, option setters).
 
 ## Construction Pattern
+Use one shared HTTP client and a single request editor; bind each generated client with it.
 ```go
 type Client struct {
 	Localstack *LocalstackClient
@@ -33,23 +36,12 @@ func New(opts ...Option) (*Client, error) {
     base, err := url.Parse(cfg.BaseURL)
     if err != nil { return nil, fmt.Errorf("base url: %w", err) }
 
-    // one shared http.Client (with timeouts, tracing, retries if you add them)
-    hc := cfg.HTTPClient
-    if hc == nil { hc = defaultHTTPClient() }
+    hc := pickHTTPClient(cfg) // set timeout; optionally wrap with retry transport
+    editor := makeRequestEditor(cfg) // user-agent, auth header, api-key, extra headers
 
-    // request editor for auth/headers
-    editor := func(ctx context.Context, req *http.Request) error {
-        req.Header.Set("User-Agent", cfg.UserAgent)
-        if cfg.AuthHeader != "" {
-            req.Header.Set("Authorization", cfg.AuthHeader)
-        }
-        if cfg.APIKey != "" {
-            req.Header.Set("x-api-key", cfg.APIKey)
-        }
-        return nil
-    }
-
-    lc, err := genlocalstack.NewClient(base.String(), genlocalstack.WithHTTPClient(hc), genlocalstack.WithRequestEditorFn(editor))
+    lc, err := genlocalstack.NewClient(base.String(),
+        genlocalstack.WithHTTPClient(hc),
+        genlocalstack.WithRequestEditorFn(editor))
     if err != nil { return nil, fmt.Errorf("localstack client: %w", err) }
     // repeat for other generated clients...
 
@@ -62,6 +54,18 @@ func New(opts ...Option) (*Client, error) {
     }, nil
 }
 ```
+Option helpers to implement in porcelain (examples):
+```go
+func WithBaseURL(u string) Option        { return func(c *Config) { c.BaseURL = u } }
+func WithHTTPClient(h *http.Client) Option { return func(c *Config) { c.HTTPClient = h } }
+func WithUserAgent(ua string) Option     { return func(c *Config) { c.UserAgent = ua } }
+func WithAuthHeader(v string) Option     { return func(c *Config) { c.AuthHeader = v } }
+func WithAPIKey(v string) Option         { return func(c *Config) { c.APIKey = v } }
+func WithRequestEditor(fn RequestEditor) Option {
+    return func(c *Config) { c.RequestEditors = append(c.RequestEditors, fn) }
+}
+```
+`makeRequestEditor` can chain `cfg.RequestEditors` plus built-ins.
 
 ## Porcelain Methods
 Wrap generated calls with:
@@ -79,8 +83,11 @@ func (c *PodsClient) List(ctx context.Context) ([]genpods.PodSummary, error) {
     if err != nil {
         return nil, fmt.Errorf("list pods: %w", err)
     }
-    if resp.StatusCode() != http.StatusOK || resp.JSON200 == nil {
-        return nil, fmt.Errorf("list pods: unexpected status %d", resp.StatusCode())
+    if err := expect(resp.HTTPResponse, http.StatusOK); err != nil {
+        return nil, errWithBody(err, resp.Body)
+    }
+    if resp.JSON200 == nil {
+        return nil, fmt.Errorf("list pods: empty body")
     }
     return *resp.JSON200, nil
 }
@@ -101,16 +108,24 @@ func (c *PodsClient) List(ctx context.Context) ([]genpods.PodSummary, error) {
   - `internal/generated/pods`
   - `internal/generated/chaos`
   - `internal/generated/replicator`
-- Prefer reusing shared types when sensible; otherwise wrap/alias in porcelain if more ergonomic.
+- Prefer reusing shared models where available; otherwise wrap/alias in porcelain for ergonomics.
+- Keep the generated package names out of your public API if you want freedom to regenerate/rename.
 
 ## Error Handling Pattern
-Provide a small helper to map `WithResponse` outputs to errors:
+Provide helpers to map `WithResponse` outputs to errors and keep bodies for debugging:
 ```go
-func check(resp interface{ StatusCode() int }, okStatus int, body []byte) error {
-    if resp.StatusCode() == okStatus {
+func expect(r *http.Response, want int) error {
+    if r.StatusCode == want {
         return nil
     }
-    return fmt.Errorf("unexpected status %d: %s", resp.StatusCode(), string(body))
+    return fmt.Errorf("unexpected status %d", r.StatusCode)
+}
+
+func errWithBody(err error, body []byte) error {
+    if len(body) == 0 {
+        return err
+    }
+    return fmt.Errorf("%w: %s", err, string(body))
 }
 ```
 Then use it in helpers after calling `*_WithResponse`.

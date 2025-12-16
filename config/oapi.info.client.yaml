@@ -1,9 +1,9 @@
-package: genaws
+package: geninfo
 generate:
   client: true
-output: internal/generated/aws/client.gen.go
+output: internal/generated/info/client.gen.go
 output-options:
   response-type-suffix: Resp
   include-tags:
-    - aws
+    - info
 

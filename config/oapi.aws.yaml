@@ -1,9 +1,0 @@
-package: genaws
-generate:
-  models: true
-output: internal/generated/aws/types.gen.go
-output-options:
-  response-type-suffix: Resp
-  include-tags:
-    - aws
-

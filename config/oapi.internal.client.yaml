@@ -1,9 +1,9 @@
-package: genchaos
+package: geninternal
 generate:
   client: true
-output: internal/generated/chaos/client.gen.go
+output: internal/generated/internal/client.gen.go
 output-options:
   response-type-suffix: Resp
   include-tags:
-    - chaos
+    - internal
 

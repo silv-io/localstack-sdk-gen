@@ -1,0 +1,235 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LocalStack Internal API",
+    "version": "0.1.0",
+    "description": "LocalStack Internal REST API - alpha version"
+  },
+  "servers": [
+    {
+      "url": "http://{host}:{port}",
+      "variables": {
+        "port": {
+          "default": "4566"
+        },
+        "host": {
+          "default": "localhost.localstack.cloud"
+        }
+      }
+    }
+  ],
+  "tags": [
+    {
+      "name": "info"
+    },
+    {
+      "name": "internal"
+    }
+  ],
+  "paths": {
+    "/_localstack/health": {
+      "get": {
+        "operationId": "getHealth",
+        "description": "Get available LocalStack features and AWS services",
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "404": {
+            "description": "Unavailable"
+          }
+        },
+        "tags": [
+          "info"
+        ]
+      },
+      "post": {
+        "description": "Restart or terminate LocalStack session",
+        "operationId": "sendSignal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "restart",
+                      "kill"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "action": "restart"
+              }
+            }
+          }
+        },
+        "tags": [
+          "internal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "400": {
+            "description": "Invalid request"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateHealthInfo",
+        "description": "Update health information",
+        "tags": [
+          "internal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "404": {
+            "description": "Unavailable"
+          }
+        }
+      }
+    },
+    "/_localstack/info": {
+      "get": {
+        "operationId": "getSessionInfo",
+        "description": "Get information about the current LocalStack session",
+        "tags": [
+          "info"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Info"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unavailable"
+          }
+        }
+      }
+    },
+    "/_localstack/licenseinfo": {
+      "get": {
+        "operationId": "getLicenseInfo",
+        "description": "Get information about the current LocalStack license",
+        "tags": [
+          "info"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseInfo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Info": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "edition": {
+            "type": "string"
+          },
+          "is_license_activated": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "number"
+          },
+          "machine_id": {
+            "type": "string"
+          },
+          "system": {
+            "type": "string"
+          },
+          "is_docker": {
+            "type": "boolean"
+          },
+          "server_time_utc": {
+            "type": "string"
+          },
+          "uptime": {
+            "type": "integer"
+          }
+        },
+        "example": {
+          "version": "3.7.0",
+          "edition": "community",
+          "is_license_activated": false,
+          "session_id": 123456789,
+          "machine_id": "abcd-efgh",
+          "system": "macOS-15.1.0-arm64",
+          "is_docker": false,
+          "server_time_utc": "2025-01-15T12:34:56Z",
+          "uptime": 4200
+        },
+        "description": "Generalized Information about the current localstack instance"
+      },
+      "LicenseInfo": {
+        "type": "object",
+        "properties": {
+          "available_plugins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "license": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "expires_in": {
+                "type": "string"
+              },
+              "reactivate_in": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "example": {
+          "available_plugins": [
+            "localstack.platform.plugin/pods"
+          ],
+          "license": {
+            "id": "lic-123456",
+            "type": "enterprise",
+            "expires_in": "20 minutes, 3 hours, 5 days",
+            "reactivate_in": "20 minutes, 8 hours"
+          }
+        },
+        "description": "Information about the current LocalStack license"
+      }
+    }
+  }
+}

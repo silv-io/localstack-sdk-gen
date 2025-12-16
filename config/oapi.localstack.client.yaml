@@ -1,9 +1,0 @@
-package: genlocalstack
-generate:
-  client: true
-output: internal/generated/localstack/client.gen.go
-output-options:
-  response-type-suffix: Resp
-  include-tags:
-    - localstack
-

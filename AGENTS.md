@@ -13,18 +13,16 @@ This doc explains how to build an ergonomic Go SDK on top of the generated clien
 
 ## Where to Put Porcelain
 - Use the existing `client` package as the entrypoint.
-- Create subpackages or files per domain (e.g., `client/localstack`, `client/aws`, `client/pods`, `client/chaos`, `client/replicator`) that wrap the generated packages `genlocalstack`, `genaws`, `genpods`, `genchaos`, `genrepl`.
-- Keep shared config/types in `client` (e.g., Config, option setters).
+- Create subpackages/files per domain that match generated packages. Current minimal spec tags: `info` → `internal/generated/info`, `internal` → `internal/generated/internal`. As new tags are added, mirror them (e.g., `aws`, `pods`, etc.).
+- Keep shared config/types in `client` (e.g., Config, option setters). Avoid exposing generated package names in the public API.
 
 ## Construction Pattern
 Use one shared HTTP client and a single request editor; bind each generated client with it.
 ```go
 type Client struct {
-	Localstack *LocalstackClient
-	AWS        *AWSClient
-	Pods       *PodsClient
-	Chaos      *ChaosClient
-	Replicator *ReplicatorClient
+	Info     *InfoClient
+	Internal *InternalClient
+	// add more domains as tags/specs grow
 }
 
 type Option func(*Config)
@@ -39,18 +37,19 @@ func New(opts ...Option) (*Client, error) {
     hc := pickHTTPClient(cfg) // set timeout; optionally wrap with retry transport
     editor := makeRequestEditor(cfg) // user-agent, auth header, api-key, extra headers
 
-    lc, err := genlocalstack.NewClient(base.String(),
-        genlocalstack.WithHTTPClient(hc),
-        genlocalstack.WithRequestEditorFn(editor))
-    if err != nil { return nil, fmt.Errorf("localstack client: %w", err) }
-    // repeat for other generated clients...
+    ic, err := geninfo.NewClient(base.String(),
+        geninfo.WithHTTPClient(hc),
+        geninfo.WithRequestEditorFn(editor))
+    if err != nil { return nil, fmt.Errorf("info client: %w", err) }
+
+    inc, err := geninternal.NewClient(base.String(),
+        geninternal.WithHTTPClient(hc),
+        geninternal.WithRequestEditorFn(editor))
+    if err != nil { return nil, fmt.Errorf("internal client: %w", err) }
 
     return &Client{
-        Localstack: &LocalstackClient{gen: lc},
-        AWS:        &AWSClient{gen: ac},
-        Pods:       &PodsClient{gen: pc},
-        Chaos:      &ChaosClient{gen: cc},
-        Replicator: &ReplicatorClient{gen: rc},
+        Info:     &InfoClient{gen: ic},
+        Internal: &InternalClient{gen: inc},
     }, nil
 }
 ```
@@ -101,15 +100,9 @@ func (c *PodsClient) List(ctx context.Context) ([]genpods.PodSummary, error) {
 - Timeouts/retries (via the provided http.Client; you can add a retry transport if desired).
 
 ## Generated Package Use
-- Types per domain live in:
-  - `internal/generated/types` (shared models)
-  - `internal/generated/localstack`
-  - `internal/generated/aws`
-  - `internal/generated/pods`
-  - `internal/generated/chaos`
-  - `internal/generated/replicator`
-- Prefer reusing shared models where available; otherwise wrap/alias in porcelain for ergonomics.
-- Keep the generated package names out of your public API if you want freedom to regenerate/rename.
+- Current minimal spec: `internal/generated/info` and `internal/generated/internal`, each already contains both client and types. Reuse those types; don’t duplicate models in porcelain.
+- As new tags are added, new generated packages will include their own types—consume them directly or alias them in porcelain for a stable public API.
+- Keep generated package names out of your public API for future flexibility; re-export or wrap types if you want a stable surface.
 
 ## Error Handling Pattern
 Provide helpers to map `WithResponse` outputs to errors and keep bodies for debugging:

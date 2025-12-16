@@ -1,9 +1,9 @@
-package: genrepl
+package: geninternal
 generate:
   models: true
-output: internal/generated/replicator/types.gen.go
+output: internal/generated/internal/types.gen.go
 output-options:
   response-type-suffix: Resp
   include-tags:
-    - replicator
+    - internal
 

@@ -58,3 +58,59 @@ func (c *InternalClient) UpdateHealthInfo(ctx context.Context) error {
 	}
 	return expectStatus(resp.HTTPResponse, http.StatusOK, "update health info", resp.Body)
 }
+
+func (c *InternalClient) InitScripts(ctx context.Context) (*InitScripts, error) {
+	resp, err := c.gen.GetLocalstackInitWithResponse(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get init scripts: %w", err)
+	}
+	if err := expectStatus(resp.HTTPResponse, http.StatusOK, "get init scripts", resp.Body); err != nil {
+		return nil, err
+	}
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("get init scripts: empty body")
+	}
+	return (*InitScripts)(resp.JSON200), nil
+}
+
+func (c *InternalClient) InitScriptsStage(ctx context.Context, stage string) (*InitScripts, error) {
+	resp, err := c.gen.GetLocalstackInitStageWithResponse(ctx, stage)
+	if err != nil {
+		return nil, fmt.Errorf("get init scripts stage: %w", err)
+	}
+	if err := expectStatus(resp.HTTPResponse, http.StatusOK, "get init scripts stage", resp.Body); err != nil {
+		return nil, err
+	}
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("get init scripts stage: empty body")
+	}
+	return (*InitScripts)(resp.JSON200), nil
+}
+
+func (c *InternalClient) Plugins(ctx context.Context) (*Plugins, error) {
+	resp, err := c.gen.GetLocalstackPluginsWithResponse(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get plugins: %w", err)
+	}
+	if err := expectStatus(resp.HTTPResponse, http.StatusOK, "get plugins", resp.Body); err != nil {
+		return nil, err
+	}
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("get plugins: empty body")
+	}
+	return (*Plugins)(resp.JSON200), nil
+}
+
+func (c *InternalClient) Certificates(ctx context.Context) (*CertificateList, error) {
+	resp, err := c.gen.GetListCertificatesWithResponse(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get certificates: %w", err)
+	}
+	if err := expectStatus(resp.HTTPResponse, http.StatusOK, "get certificates", resp.Body); err != nil {
+		return nil, err
+	}
+	if resp.JSON200 == nil {
+		return nil, fmt.Errorf("get certificates: empty body")
+	}
+	return (*CertificateList)(resp.JSON200), nil
+}

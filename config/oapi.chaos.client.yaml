@@ -1,8 +1,9 @@
-package: infoapi
+package: chaosapi
 generate:
   client: true
-output: internal/generated/infoapi/client.gen.go
+output: internal/generated/chaosapi/client.gen.go
 output-options:
   response-type-suffix: Resp
   include-tags:
-    - info
+    - chaos
+

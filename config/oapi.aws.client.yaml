@@ -1,8 +1,9 @@
-package: infoapi
+package: awsapi
 generate:
   client: true
-output: internal/generated/infoapi/client.gen.go
+output: internal/generated/awsapi/client.gen.go
 output-options:
   response-type-suffix: Resp
   include-tags:
-    - info
+    - aws
+

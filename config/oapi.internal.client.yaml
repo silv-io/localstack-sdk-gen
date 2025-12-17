@@ -1,9 +1,8 @@
-package: geninternal
+package: internalapi
 generate:
   client: true
-output: internal/generated/internal/client.gen.go
+output: internal/generated/internalapi/client.gen.go
 output-options:
   response-type-suffix: Resp
   include-tags:
     - internal
-

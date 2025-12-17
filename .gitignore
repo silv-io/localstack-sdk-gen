@@ -5,7 +5,6 @@ bin/
 dist/
 coverage/
 *.log
-internal/generated/
 
 .gocache
 .gomodcache/

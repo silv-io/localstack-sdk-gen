@@ -24,11 +24,11 @@ This project sets up Go SDK generation from the LocalStack OpenAPI spec using `o
    ```go
    import "github.com/localstack/localstack-sdk-go/client"
 
-   c := client.New(client.DefaultConfig())
+   c, err := client.New()
+   if err != nil { /* handle */ }
    _ = c // extend with porcelain helpers later
    ```
 
 ## Notes
 - Generated files are ignored by default (`internal/generated/`).
 - The porcelain client is intentionally stubbed; add higher-level helpers as needed without touching generated code.
-

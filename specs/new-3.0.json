@@ -1,0 +1,943 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LocalStack API",
+    "version": "1.0.0",
+    "description": "LocalStack REST API including internal endpoints and AWS service-specific endpoints"
+  },
+  "servers": [
+    {
+      "url": "http://{host}:{port}",
+      "variables": {
+        "port": {
+          "default": "4566"
+        },
+        "host": {
+          "default": "localhost.localstack.cloud"
+        }
+      }
+    }
+  ],
+  "tags": [
+    {
+      "name": "info"
+    },
+    {
+      "name": "internal"
+    },
+    {
+      "name": "chaos"
+    },
+    {
+      "name": "aws"
+    }
+  ],
+  "paths": {
+    "/_localstack/health": {
+      "get": {
+        "summary": "Get LocalStack health status",
+        "description": "Returns the health status of LocalStack, including service states. Add ?reload query parameter to force reload service states.",
+        "tags": [
+          "info"
+        ],
+        "operationId": "get_localstack_health",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Control LocalStack instance",
+        "description": "Backdoor API to restart or kill the LocalStack instance. Requires JSON body with 'action' field set to 'restart' or 'kill'.",
+        "tags": [
+          "internal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "restart",
+                      "kill"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "action": "restart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Action completed successfully"
+          },
+          "400": {
+            "description": "Invalid request (missing or empty body)"
+          }
+        },
+        "operationId": "post_localstack_health"
+      },
+      "put": {
+        "summary": "Update health state",
+        "description": "Updates internal health state. Keys with ':' are interpreted as nested paths (e.g., 'features:initScripts').",
+        "tags": [
+          "internal"
+        ],
+        "operationId": "put_localstack_health",
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/_localstack/info": {
+      "get": {
+        "summary": "Get LocalStack instance information",
+        "description": "Returns general information about the current LocalStack instance, including version, edition, session ID, and system details.",
+        "tags": [
+          "info"
+        ],
+        "operationId": "get_localstack_info",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InfoResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_localstack/licenseinfo": {
+      "get": {
+        "operationId": "get_localstack_licenseinfo",
+        "summary": "Get information about the current LocalStack license",
+        "description": "Returns information about the current LocalStack license, including the available plugins and the license details.",
+        "tags": [
+          "info"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseInfoResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unavailable"
+          }
+        }
+      }
+    },
+    "/_localstack/plugins": {
+      "get": {
+        "summary": "List LocalStack plugins",
+        "description": "Returns information about all loaded plux plugins, organized by namespace. Includes service providers, init script runners, and runtime hooks.",
+        "tags": [
+          "internal"
+        ],
+        "operationId": "get_localstack_plugins",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_localstack/init": {
+      "get": {
+        "summary": "Get init scripts status",
+        "description": "Returns the status of all init scripts, including which stages have completed and the state of individual scripts.",
+        "tags": [
+          "internal"
+        ],
+        "operationId": "get_localstack_init",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InitScriptsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_localstack/init/{stage}": {
+      "get": {
+        "summary": "Get init scripts status for a specific stage",
+        "description": "Returns the status of init scripts for a specific stage (BOOT, START, READY, SHUTDOWN).",
+        "tags": [
+          "internal"
+        ],
+        "operationId": "get_localstack_init_stage",
+        "parameters": [
+          {
+            "name": "stage",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InitScriptsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_localstack/diagnose": {
+      "get": {
+        "summary": "Get diagnostic information",
+        "description": "Returns comprehensive diagnostic information about LocalStack, including version details, configuration, Docker state, logs, and service statistics.",
+        "tags": [
+          "info"
+        ],
+        "operationId": "get_localstack_diagnose",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnoseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_localstack/usage": {
+      "get": {
+        "summary": "Get LocalStack usage statistics",
+        "description": "Returns usage statistics for the LocalStack instance.",
+        "tags": [
+          "info"
+        ],
+        "operationId": "get_localstack_usage",
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/_localstack/chaos/faults/": {
+      "get": {
+        "summary": "Get the current fault configuration",
+        "description": "Retrieve the list of currently configured fault rules.",
+        "operationId": "get_fault_rules",
+        "tags": [
+          "chaos"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FaultRule"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_localstack/chaos/effects/": {
+      "get": {
+        "summary": "Get the current network effect configuration",
+        "description": "Retrieve the current network effect settings.",
+        "operationId": "get_network_effects",
+        "tags": [
+          "chaos"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval of network effect configuration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkEffectConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_localstack/certs": {
+      "get": {
+        "summary": "List available certificates",
+        "description": "Retrieve the list of available certificates and root CA.",
+        "operationId": "get_list_certificates",
+        "tags": [
+          "internal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "List available certificates",
+        "description": "Retrieve the list of available certificates and root CA.",
+        "operationId": "post_list_certificates",
+        "tags": [
+          "internal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "List available certificates",
+        "description": "Retrieve the list of available certificates and root CA.",
+        "operationId": "put_list_certificates",
+        "tags": [
+          "internal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "List available certificates",
+        "description": "Retrieve the list of available certificates and root CA.",
+        "operationId": "patch_list_certificates",
+        "tags": [
+          "internal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "List available certificates",
+        "description": "Retrieve the list of available certificates and root CA.",
+        "operationId": "delete_list_certificates",
+        "tags": [
+          "internal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "trace": {
+        "summary": "List available certificates",
+        "description": "Retrieve the list of available certificates and root CA.",
+        "operationId": "trace_list_certificates",
+        "tags": [
+          "internal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_aws/lambda/init": {
+      "get": {
+        "summary": "Get Lambda init binary",
+        "description": "Returns the Lambda runtime init binary for Lambda execution environments.",
+        "tags": [
+          "aws"
+        ],
+        "operationId": "get_aws_lambda_init",
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/_aws/lambda/runtimes": {
+      "get": {
+        "summary": "List Lambda runtimes",
+        "description": "Returns supported Lambda runtimes. Use query parameter 'filter' with values: 'all', 'supported', or 'deprecated'.",
+        "tags": [
+          "aws"
+        ],
+        "operationId": "get_aws_lambda_runtimes",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LambdaRuntimesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/_aws/iam/config": {
+      "get": {
+        "summary": "Get IAM enforcement configuration",
+        "description": "Retrieve the current IAM policy enforcement state and configuration options.",
+        "tags": [
+          "aws"
+        ],
+        "operationId": "get_aws_iam_config",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IamConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Configure IAM enforcement state",
+        "description": "Set the IAM policy enforcement state (DISABLED, ENGINE_ONLY, SOFT_MODE, or ENFORCED).",
+        "tags": [
+          "aws"
+        ],
+        "operationId": "post_aws_iam_config",
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/_aws/iam/check-actions-allowed": {
+      "post": {
+        "summary": "Check if IAM actions are allowed",
+        "description": "Test whether specific IAM actions are allowed on given resources for a principal identified by access key ID.",
+        "tags": [
+          "aws"
+        ],
+        "operationId": "post_aws_iam_check_actions_allowed",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckActionsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "services": {
+            "type": "object"
+          },
+          "edition": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "description": "Response from the health endpoint.",
+        "required": [
+          "edition",
+          "services",
+          "version"
+        ]
+      },
+      "InfoResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "edition": {
+            "type": "string"
+          },
+          "is_license_activated": {
+            "type": "boolean"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "machine_id": {
+            "type": "string"
+          },
+          "system": {
+            "type": "string"
+          },
+          "is_docker": {
+            "type": "boolean"
+          },
+          "server_time_utc": {
+            "type": "string"
+          },
+          "uptime": {
+            "type": "integer"
+          }
+        },
+        "description": "Response from the info endpoint.",
+        "required": [
+          "edition",
+          "is_docker",
+          "is_license_activated",
+          "machine_id",
+          "server_time_utc",
+          "session_id",
+          "system",
+          "uptime",
+          "version"
+        ]
+      },
+      "PluginsResponse": {
+        "type": "object",
+        "properties": {},
+        "description": "Response from the plugins endpoint."
+      },
+      "InitScriptsResponse": {
+        "type": "object",
+        "properties": {
+          "completed": {
+            "type": "object"
+          },
+          "scripts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InitScriptInfo"
+            }
+          }
+        },
+        "description": "Response from the init scripts endpoint.",
+        "required": [
+          "completed",
+          "scripts"
+        ]
+      },
+      "InitScriptInfo": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "description": "Information about a single init script.",
+        "required": [
+          "name",
+          "stage",
+          "state"
+        ]
+      },
+      "DiagnoseResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/DiagnoseVersion"
+          },
+          "info": {
+            "$ref": "#/components/schemas/InfoResponse"
+          },
+          "services": {
+            "type": "string"
+          },
+          "config": {
+            "type": "string"
+          }
+        },
+        "description": "Response from the diagnose endpoint."
+      },
+      "DiagnoseVersion": {
+        "type": "object",
+        "properties": {
+          "image_version": {
+            "type": "string"
+          },
+          "localstack_version": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          }
+        },
+        "description": "Version information in diagnose response."
+      },
+      "FaultRule": {
+        "type": "object",
+        "properties": {
+          "region": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "probability": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          },
+          "error": {
+            "$ref": "#/components/schemas/FaultError"
+          }
+        },
+        "description": "Represents a rule for injecting faults."
+      },
+      "FaultError": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string"
+          }
+        },
+        "description": "Represents the error to be injected for a fault."
+      },
+      "CertificateList": {
+        "type": "object",
+        "properties": {
+          "ca": {
+            "$ref": "#/components/schemas/RootCAInfo"
+          },
+          "certs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CertificateInfo"
+            }
+          }
+        },
+        "description": "List of available certificates and root CA information.",
+        "required": [
+          "ca",
+          "certs"
+        ]
+      },
+      "RootCAInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "description": "Information about the root certificate authority.",
+        "required": [
+          "name",
+          "url"
+        ]
+      },
+      "CertificateInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "description": "Information about a certificate.",
+        "required": [
+          "name",
+          "url"
+        ]
+      },
+      "LambdaRuntimesResponse": {
+        "type": "object",
+        "properties": {
+          "Runtimes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "IamConfig": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "config_enforce_iam": {
+            "type": "boolean"
+          },
+          "config_iam_soft_mode": {
+            "type": "boolean"
+          }
+        },
+        "description": "IAM enforcement configuration.",
+        "required": [
+          "config_enforce_iam",
+          "config_iam_soft_mode",
+          "state"
+        ]
+      },
+      "CheckActionsResponse": {
+        "type": "object",
+        "properties": {
+          "allowed": {
+            "type": "boolean"
+          },
+          "implicit_deny": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionAndResource"
+            }
+          },
+          "explicit_deny": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionAndResource"
+            }
+          },
+          "explicit_allow": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionAndResource"
+            }
+          },
+          "source_principal": {
+            "$ref": "#/components/schemas/SourcePrincipal"
+          },
+          "status_code": {
+            "type": "integer"
+          },
+          "status_reason": {
+            "type": "string"
+          }
+        },
+        "description": "Response from checking if actions are allowed.",
+        "required": [
+          "allowed",
+          "explicit_allow",
+          "explicit_deny",
+          "implicit_deny",
+          "source_principal",
+          "status_code",
+          "status_reason"
+        ]
+      },
+      "ActionAndResource": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "account": {
+            "type": "string"
+          },
+          "condition_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "access_level": {
+            "type": "string"
+          }
+        },
+        "description": "Action and resource access evaluation.",
+        "required": [
+          "account",
+          "action",
+          "resource"
+        ]
+      },
+      "SourcePrincipal": {
+        "type": "object",
+        "properties": {
+          "arn": {
+            "type": "string"
+          },
+          "account": {
+            "type": "string"
+          }
+        },
+        "description": "Information about the source principal.",
+        "required": [
+          "account",
+          "arn"
+        ]
+      },
+      "NetworkEffectConfig": {
+        "description": "Configuration for network effects.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "latency"
+        ],
+        "properties": {
+          "latency": {
+            "description": "Network latency in milliseconds. By default, 0 is used.",
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "LicenseInfoResponse": {
+        "type": "object",
+        "properties": {
+          "available_plugins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "license": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "expires_in": {
+                "type": "string"
+              },
+              "reactivate_in": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "example": {
+          "available_plugins": [
+            "localstack.platform.plugin/pods"
+          ],
+          "license": {
+            "id": "lic-123456",
+            "type": "enterprise",
+            "expires_in": "20 minutes, 3 hours, 5 days",
+            "reactivate_in": "20 minutes, 8 hours"
+          }
+        },
+        "description": "Information about the current LocalStack license"
+      }
+    }
+  }
+}
